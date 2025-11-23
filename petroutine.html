@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Routine Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <header class="text-center mb-12 fade-in">
+            <h1 class="text-5xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-2">
+                🐾 Pet Routine Tracker
+            </h1>
+            <p class="text-gray-300 text-lg">Keep your furry friends happy and healthy</p>
+        </header>
+
+        <!-- Add Pet Section -->
+        <div class="bg-gray-800 rounded-2xl shadow-xl p-6 mb-8 fade-in border border-gray-700">
+            <h2 class="text-2xl font-bold text-gray-100 mb-4">Add New Pet</h2>
+            <div class="flex flex-col md:flex-row gap-4">
+                <input type="text" id="petName" placeholder="Pet name" 
+                    class="flex-1 px-4 py-3 bg-gray-700 border-2 border-gray-600 text-gray-100 placeholder-gray-400 rounded-xl focus:border-purple-500 focus:outline-none">
+                <select id="petType" 
+                    class="px-4 py-3 bg-gray-700 border-2 border-gray-600 text-gray-100 rounded-xl focus:border-purple-500 focus:outline-none">
+                    <option value="🐕">🐕 Dog</option>
+                    <option value="🐈">🐈 Cat</option>
+                    <option value="🐦">🐦 Bird</option>
+                    <option value="🐠">🐠 Fish</option>
+                    <option value="🐰">🐰 Rabbit</option>
+                    <option value="🐹">🐹 Hamster</option>
+                </select>
+                <button onclick="addPet()" 
+                    class="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg transform hover:scale-105 transition">
+                    Add Pet
+                </button>
+            </div>
+        </div>
+
+        <!-- Pets Grid -->
+        <div id="petsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Pets will be dynamically added here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-16 fade-in">
+            <div class="text-8xl mb-4">🐾</div>
+            <h3 class="text-2xl font-bold text-gray-200 mb-2">No pets yet</h3>
+            <p class="text-gray-400">Add your first pet to start tracking their routine!</p>
+        </div>
+    </div>
+
+    <!-- Modal for Adding Tasks -->
+    <div id="taskModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 fade-in border border-gray-700">
+            <h3 class="text-2xl font-bold text-gray-100 mb-4">Add Routine Task</h3>
+            <input type="text" id="taskName" placeholder="Task name (e.g., Morning walk)" 
+                class="w-full px-4 py-3 bg-gray-700 border-2 border-gray-600 text-gray-100 placeholder-gray-400 rounded-xl focus:border-purple-500 focus:outline-none mb-4">
+            <input type="time" id="taskTime" 
+                class="w-full px-4 py-3 bg-gray-700 border-2 border-gray-600 text-gray-100 rounded-xl focus:border-purple-500 focus:outline-none mb-6">
+            <div class="flex gap-3">
+                <button onclick="closeTaskModal()" 
+                    class="flex-1 px-4 py-3 border-2 border-gray-600 text-gray-300 font-semibold rounded-xl hover:bg-gray-700 transition">
+                    Cancel
+                </button>
+                <button onclick="saveTask()" 
+                    class="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg transition">
+                    Add Task
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pets = JSON.parse(localStorage.getItem('pets')) || [];
+        let currentPetId = null;
+
+        function savePets() {
+            localStorage.setItem('pets', JSON.stringify(pets));
+        }
+
+        function addPet() {
+            const name = document.getElementById('petName').value.trim();
+            const type = document.getElementById('petType').value;
+
+            if (!name) {
+                alert('Please enter a pet name');
+                return;
+            }
+
+            const pet = {
+                id: Date.now(),
+                name: name,
+                type: type,
+                tasks: []
+            };
+
+            pets.push(pet);
+            savePets();
+            renderPets();
+
+            document.getElementById('petName').value = '';
+        }
+
+        function deletePet(petId) {
+            if (confirm('Are you sure you want to remove this pet?')) {
+                pets = pets.filter(p => p.id !== petId);
+                savePets();
+                renderPets();
+            }
+        }
+
+        function openTaskModal(petId) {
+            currentPetId = petId;
+            document.getElementById('taskModal').classList.remove('hidden');
+            document.getElementById('taskName').value = '';
+            document.getElementById('taskTime').value = '';
+            document.getElementById('taskName').focus();
+        }
+
+        function closeTaskModal() {
+            document.getElementById('taskModal').classList.add('hidden');
+            currentPetId = null;
+        }
+
+        function saveTask() {
+            const taskName = document.getElementById('taskName').value.trim();
+            const taskTime = document.getElementById('taskTime').value;
+
+            if (!taskName) {
+                alert('Please enter a task name');
+                return;
+            }
+
+            const pet = pets.find(p => p.id === currentPetId);
+            if (pet) {
+                const task = {
+                    id: Date.now(),
+                    name: taskName,
+                    time: taskTime,
+                    completed: false,
+                    lastCompleted: null
+                };
+                pet.tasks.push(task);
+                savePets();
+                renderPets();
+                closeTaskModal();
+            }
+        }
+
+        function toggleTask(petId, taskId) {
+            const pet = pets.find(p => p.id === petId);
+            if (pet) {
+                const task = pet.tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.completed = !task.completed;
+                    task.lastCompleted = task.completed ? new Date().toISOString() : null;
+                    savePets();
+                    renderPets();
+                }
+            }
+        }
+
+        function deleteTask(petId, taskId) {
+            const pet = pets.find(p => p.id === petId);
+            if (pet) {
+                pet.tasks = pet.tasks.filter(t => t.id !== taskId);
+                savePets();
+                renderPets();
+            }
+        }
+
+        function resetDailyTasks() {
+            const today = new Date().toDateString();
+            pets.forEach(pet => {
+                pet.tasks.forEach(task => {
+                    if (task.lastCompleted) {
+                        const lastDate = new Date(task.lastCompleted).toDateString();
+                        if (lastDate !== today) {
+                            task.completed = false;
+                        }
+                    }
+                });
+            });
+            savePets();
+            renderPets();
+        }
+
+        function renderPets() {
+            const container = document.getElementById('petsContainer');
+            const emptyState = document.getElementById('emptyState');
+
+            if (pets.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            container.innerHTML = pets.map(pet => {
+                const completedTasks = pet.tasks.filter(t => t.completed).length;
+                const totalTasks = pet.tasks.length;
+                const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+                return `
+                    <div class="bg-gray-800 rounded-2xl shadow-lg p-6 hover:shadow-xl transition slide-in border border-gray-700">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-3">
+                                <span class="text-5xl">${pet.type}</span>
+                                <div>
+                                    <h3 class="text-2xl font-bold text-gray-100">${pet.name}</h3>
+                                    <p class="text-sm text-gray-400">${totalTasks} routine tasks</p>
+                                </div>
+                            </div>
+                            <button onclick="deletePet(${pet.id})" 
+                                class="text-red-400 hover:bg-red-900/30 p-2 rounded-lg transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        ${totalTasks > 0 ? `
+                        <div class="mb-4">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-400">Daily Progress</span>
+                                <span class="font-semibold text-purple-400">${completedTasks}/${totalTasks}</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                                <div class="bg-gradient-to-r from-purple-500 to-blue-500 h-3 rounded-full transition-all duration-500" 
+                                    style="width: ${progress}%"></div>
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <!-- Tasks List -->
+                        <div class="space-y-2 mb-4 max-h-60 overflow-y-auto">
+                            ${pet.tasks.length > 0 ? pet.tasks.sort((a, b) => (a.time || '').localeCompare(b.time || '')).map(task => `
+                                <div class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-700/50 transition group">
+                                    <input type="checkbox" 
+                                        ${task.completed ? 'checked' : ''} 
+                                        onchange="toggleTask(${pet.id}, ${task.id})"
+                                        class="w-5 h-5 rounded border-2 border-gray-600 text-purple-600 focus:ring-2 focus:ring-purple-500 cursor-pointer">
+                                    <div class="flex-1">
+                                        <p class="font-medium ${task.completed ? 'line-through text-gray-500' : 'text-gray-200'}">${task.name}</p>
+                                        ${task.time ? `<p class="text-xs text-gray-400">⏰ ${task.time}</p>` : ''}
+                                    </div>
+                                    <button onclick="deleteTask(${pet.id}, ${task.id})" 
+                                        class="opacity-0 group-hover:opacity-100 text-red-400 hover:bg-red-900/30 p-1 rounded transition">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            `).join('') : '<p class="text-gray-500 text-center py-4">No tasks yet</p>'}
+                        </div>
+
+                        <!-- Add Task Button -->
+                        <button onclick="openTaskModal(${pet.id})" 
+                            class="w-full py-3 border-2 border-dashed border-purple-500/50 text-purple-400 font-semibold rounded-xl hover:bg-purple-500/10 hover:border-purple-400 transition">
+                            + Add Task
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Reset tasks daily
+        resetDailyTasks();
+        
+        // Initial render
+        renderPets();
+
+        // Reset tasks at midnight
+        setInterval(() => {
+            const now = new Date();
+            if (now.getHours() === 0 && now.getMinutes() === 0) {
+                resetDailyTasks();
+            }
+        }, 60000);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeTaskModal();
+            }
+        });
+    </script>
+</body>
+</html>
